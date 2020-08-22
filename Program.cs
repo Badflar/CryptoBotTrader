@@ -32,8 +32,8 @@ namespace CryptoTradeBot
         public double STOP_LOSS_THRESHOLD = -2.00;
 
         // Price from currency from previous operation
-        public double lastOpPriceBTC = 11805.73;
-        public double lastOpPriceETH = 376.24;
+        public double lastOpPriceBTC = 11862.53;
+        public double lastOpPriceETH = 405.26;
 
 
         static async Task Main(string[] args)
@@ -64,11 +64,16 @@ namespace CryptoTradeBot
             // Main loop
             while (true)
             {
-                await program.MakeTrade(coinbaseProClient);
+                try{
+                    await program.MakeTrade(coinbaseProClient);
+                } catch(Exception e)
+                {
+                    Console.WriteLine(e.ToString());
+                }
                 Thread.Sleep(interval);
             }
         }
-        
+
         private async Task MakeTrade(CoinbaseProClient coinbaseProClient)
         {
             // Get percent differences and current prices of currencies
@@ -81,15 +86,15 @@ namespace CryptoTradeBot
             var percentDiffETH = (currentPriceETH - lastOpPriceETH) / lastOpPriceETH * 100;
 
             // Check if next action is to buy
-            if (isNextOperationBuy == true) 
+            if (isNextOperationBuy == true)
             {
                 // TODO - Check both percent differences and pick the "better outcome" percent
                 // Check if BTC percent difference is either greater than upward trend (spike upwards) or if percent difference is less than dip (negative number) 
                 if (percentDiffBTC >= UPWARD_TREND_THRESHOLD || percentDiffBTC <= DIP_THREHOLD)
                 {
                     var USDAccount = await coinbaseProClient.AccountsService.GetAccountByIdAsync("a8a83415-dc6c-4327-bf84-b3eb9859d81d");
-                    Console.WriteLine(USDAccount.Balance);
-                    await coinbaseProClient.OrdersService.PlaceMarketOrderAsync(CoinbasePro.Services.Orders.Types.OrderSide.Buy, ProductType.BtcUsd, Math.Round(USDAccount.Balance, 2), CoinbasePro.Services.Orders.Types.MarketOrderAmountType.Size);
+                    Console.WriteLine(Math.Round(USDAccount.Balance, 6));
+                    await coinbaseProClient.OrdersService.PlaceMarketOrderAsync(CoinbasePro.Services.Orders.Types.OrderSide.Buy, ProductType.BtcUsd, Math.Truncate(10000000 * USDAccount.Balance) / 10000000, CoinbasePro.Services.Orders.Types.MarketOrderAmountType.Size);
                     lastOpPriceBTC = currentPriceBTC;
                     var BTCAccount = await coinbaseProClient.AccountsService.GetAccountByIdAsync("4fb67e84-e6e9-46fd-bac4-ea03dc242c61");
                     Console.WriteLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + "[Operation] = Buy\n[Price] = " + currentPriceBTC.ToString() + "\n[BTC Avaliable] = " + BTCAccount.Balance.ToString() + "\n[USD Avaliable] = " + USDAccount.Balance.ToString() + "\n[Percent Difference] = " + percentDiffBTC.ToString() + "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -101,17 +106,17 @@ namespace CryptoTradeBot
                 else if (percentDiffETH >= UPWARD_TREND_THRESHOLD || percentDiffETH <= DIP_THREHOLD)
                 {
                     var USDAccount = await coinbaseProClient.AccountsService.GetAccountByIdAsync("a8a83415-dc6c-4327-bf84-b3eb9859d81d");
-                    Console.WriteLine(USDAccount.Balance);
-                    await coinbaseProClient.OrdersService.PlaceMarketOrderAsync(CoinbasePro.Services.Orders.Types.OrderSide.Buy, ProductType.EthUsd, Math.Round(USDAccount.Balance, 2), CoinbasePro.Services.Orders.Types.MarketOrderAmountType.Size);
+                    Console.WriteLine(Math.Round(USDAccount.Balance, 6));
+                    await coinbaseProClient.OrdersService.PlaceMarketOrderAsync(CoinbasePro.Services.Orders.Types.OrderSide.Buy, ProductType.EthUsd, Math.Truncate(10000000 * USDAccount.Balance) / 10000000, CoinbasePro.Services.Orders.Types.MarketOrderAmountType.Size);
                     lastOpPriceETH = currentPriceETH;
                     var ETHAccount = await coinbaseProClient.AccountsService.GetAccountByIdAsync("da8129ff-84e3-4612-8ec7-40eeee6c55ad");
                     Console.WriteLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + "[Operation] = Buy\n[Price] = " + currentPriceETH.ToString() + "\n[ETH Avaliable] = " + ETHAccount.Balance.ToString() + "\n[USD Avaliable] = " + USDAccount.Balance.ToString() + "\n[Percent Difference] = " + percentDiffETH.ToString() + "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~");
 
                     isNextOperationBuy = false;
                     isCurrentBTC = false;
-                }
 
-                //Console.WriteLine("[Percent Difference] = " + percentDiff.ToString() + " (No Action)");
+                    //Console.WriteLine("[Percent Difference] = " + percentDiff.ToString() + " (No Action)");
+                }
             }
             else if (isNextOperationBuy == false)
             {
@@ -123,8 +128,8 @@ namespace CryptoTradeBot
                     {
                         // Then sell
                         var BTCAccount = await coinbaseProClient.AccountsService.GetAccountByIdAsync("4fb67e84-e6e9-46fd-bac4-ea03dc242c61");
-                        Console.WriteLine(BTCAccount.Balance);
-                        var trade = await coinbaseProClient.OrdersService.PlaceMarketOrderAsync(CoinbasePro.Services.Orders.Types.OrderSide.Sell, ProductType.BtcUsd, Math.Round(BTCAccount.Balance, 2), CoinbasePro.Services.Orders.Types.MarketOrderAmountType.Size);
+                        Console.WriteLine(Math.Round(BTCAccount.Balance, 6));
+                        var trade = await coinbaseProClient.OrdersService.PlaceMarketOrderAsync(CoinbasePro.Services.Orders.Types.OrderSide.Sell, ProductType.BtcUsd, Math.Truncate(10000000 * BTCAccount.Balance) / 10000000, CoinbasePro.Services.Orders.Types.MarketOrderAmountType.Size);
                         lastOpPriceBTC = currentPriceBTC;
                         var USDAccount = await coinbaseProClient.AccountsService.GetAccountByIdAsync("a8a83415-dc6c-4327-bf84-b3eb9859d81d");
                         Console.WriteLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + "[Operation] = Sell\n[Price] = " + currentPriceBTC.ToString() + "\n[BTC Avaliable] = " + BTCAccount.Balance.ToString() + "\n[USD Avaliable] = " + USDAccount.Available.ToString() + "\n[Percent Difference] = " + percentDiffBTC.ToString() + "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -140,8 +145,8 @@ namespace CryptoTradeBot
                     {
                         // Then sell
                         var ETHAccount = await coinbaseProClient.AccountsService.GetAccountByIdAsync("da8129ff-84e3-4612-8ec7-40eeee6c55ad");
-                        Console.WriteLine(ETHAccount.Balance);
-                        var trade = await coinbaseProClient.OrdersService.PlaceMarketOrderAsync(CoinbasePro.Services.Orders.Types.OrderSide.Sell, ProductType.EthUsd, Math.Round(ETHAccount.Balance, 2), CoinbasePro.Services.Orders.Types.MarketOrderAmountType.Size);
+                        Console.WriteLine(Math.Round(ETHAccount.Balance, 6));
+                        var trade = await coinbaseProClient.OrdersService.PlaceMarketOrderAsync(CoinbasePro.Services.Orders.Types.OrderSide.Sell, ProductType.EthUsd, Math.Truncate(10000000 * ETHAccount.Balance) / 10000000, CoinbasePro.Services.Orders.Types.MarketOrderAmountType.Size);
                         lastOpPriceETH = currentPriceETH;
                         var USDAccount = await coinbaseProClient.AccountsService.GetAccountByIdAsync("a8a83415-dc6c-4327-bf84-b3eb9859d81d");
                         Console.WriteLine("~~~~~~~~~~~~~~~~~~~~~~~~~~~\n" + "[Operation] = Sell\n[Price] = " + currentPriceETH.ToString() + "\n[ETH Avaliable] = " + ETHAccount.Balance.ToString() + "\n[USD Avaliable] = " + USDAccount.Available.ToString() + "\n[Percent Difference] = " + percentDiffETH.ToString() + "\n~~~~~~~~~~~~~~~~~~~~~~~~~~~");
